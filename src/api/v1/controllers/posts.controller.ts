@@ -1,15 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import { GetUserAuthInfoRequestInterface } from "../common-utilities/interfaces";
-import { PostDataModel } from '../data-access-layer';
+import { PostModel } from '../data-access-layer';
 import { CustomError, CustomSuccess } from '../common-utilities/utility-classes';
 import { Visibility } from '../common-utilities/enums';
-import { CreatePostDto } from '../common-utilities/data-transfer-objects/create-post.dto';
+import { CreatePostDto } from '../common-utilities/data-transfer-objects';
 
 export const addPost = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
     const { loggedInUser } = req;
     const postData = new CreatePostDto(req.body);
-    const post = await PostDataModel.create({
+    const post = await PostModel.create({
       ...postData,
       user: loggedInUser?._id
     });
@@ -21,19 +21,19 @@ export const addPost = async (req: GetUserAuthInfoRequestInterface, res: Respons
 
 export const getAvailablePosts = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
-    const friends = req.loggedInUser?.friends;
-    const posts = await PostDataModel.find({
+    const followings = req.loggedInUser?.following;
+    const posts = await PostModel.find({
       $or: [
-        { visibility: Visibility.public },
+        { visibility: Visibility.PUBLIC },
         {
           $and: [
-            { visibility: Visibility.friends },
-            { user: { $in: friends } }
+            { visibility: Visibility.FOLLOWERS },
+            { user: { $in: followings } }
           ]
         }
       ]
     })
-      .populate('user');
+      .populate('author');
     next(new CustomSuccess(posts, 200))
   } catch(error: any) {
     next(new CustomError(error.message, 400));
@@ -42,23 +42,23 @@ export const getAvailablePosts = async (req: GetUserAuthInfoRequestInterface, re
 
 export const getPublicPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const posts = await PostDataModel.find({ visibility: Visibility.public }).populate('user');
+    const posts = await PostModel.find({ visibility: Visibility.PUBLIC }).populate('author');
     next(new CustomSuccess(posts, 200))
   } catch(error: any) {
     next(new CustomError(error.message, 400));
   }
 };
 
-export const getFriendsPosts = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
+export const getFollowingsPosts = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
-    const friends = req.loggedInUser?.friends;
-    const posts = await PostDataModel.find({
+    const followings = req.loggedInUser?.following;
+    const posts = await PostModel.find({
       $and: [
-        { visibility: Visibility.friends },
-        { user: { $in: friends } }
+        { visibility: Visibility.FOLLOWERS },
+        { user: { $in: followings } }
       ]
     })
-      .populate('user');
+      .populate('author');
     next(new CustomSuccess(posts, 200))
   } catch(error: any) {
     next(new CustomError(error.message, 400));

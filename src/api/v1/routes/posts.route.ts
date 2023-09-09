@@ -1,5 +1,5 @@
 import express from 'express';
-import { addPost, getAvailablePosts, getFriendsPosts, getPublicPosts } from '../controllers';
+import { addPost, getAvailablePosts, getPublicPosts, getFollowingsPosts } from '../controllers';
 import { isAuthenticated } from '../common-utilities/middlewares';
 
 const router = express.Router();
@@ -9,6 +9,6 @@ router.post('/', isAuthenticated, addPost)
 
 router.get('/public', getPublicPosts);
 
-router.get('/friends', isAuthenticated, getFriendsPosts);
+router.get('/followings', isAuthenticated, getFollowingsPosts);
 
 export const postsRoute = router;
