@@ -1,6 +1,6 @@
 import { NextFunction, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { UserDataModel } from '../../data-access-layer';
+import { UserModel } from '../../data-access-layer';
 import { GetUserAuthInfoRequestInterface, AccessTokenPayloadInterface } from '../interfaces';
 import { CustomError } from '../utility-classes';
 
@@ -15,7 +15,7 @@ export const isAuthenticated = async (req: GetUserAuthInfoRequestInterface, res:
       );
       const loggedInUserId = embeddedPayloadFromJwt?.mongoDbUserId;
       if (loggedInUserId) {
-        const user = await UserDataModel.findById(loggedInUserId);
+        const user = await UserModel.findById(loggedInUserId);
         if (user) {
           // * Adding custom property to req
           req.loggedInUser = user;
