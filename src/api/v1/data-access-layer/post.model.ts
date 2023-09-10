@@ -1,5 +1,5 @@
 import mongoose, { CallbackWithoutResultAndOptionalError, Schema, Types } from 'mongoose';
-import { Visibility } from '../common-utilities/enums';
+import { Visibility } from '../shared';
 
 export interface PostInterface {
   author: Types.ObjectId,

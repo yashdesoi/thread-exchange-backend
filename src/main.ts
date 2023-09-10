@@ -5,8 +5,8 @@ import colors from 'colors'
 import { Server } from 'http';
 import { authRoute, postsRoute, usersRoute } from './api/v1/routes';
 import morgan from 'morgan';
-import { isAuthenticated, outcomeHandler } from './api/v1/common-utilities/middlewares';
-import { CustomError } from './api/v1/common-utilities/utility-classes';
+import { isAuthenticated, outcomeHandler } from './api/v1/shared';
+import { CustomError } from './api/v1/shared';
 
 dotenv.config();
 colors.enable();
@@ -23,8 +23,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1/auth', authRoute);
-
-app.use(isAuthenticated);
 app.use('/api/v1/posts', postsRoute);
 app.use('/api/v1/users', usersRoute);
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

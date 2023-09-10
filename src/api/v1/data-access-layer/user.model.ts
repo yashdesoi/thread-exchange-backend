@@ -1,6 +1,6 @@
 import mongoose, { CallbackWithoutResultAndOptionalError, Schema, Types } from 'mongoose';
 import { getHashedPassword } from '../helpers';
-import { EMAIL_REGEX, PASSWORD_REGEX } from '../common-utilities/constants';
+import { EMAIL_REGEX, PASSWORD_REGEX } from '../shared';
 
 export interface UserInterface {
   email: string,
