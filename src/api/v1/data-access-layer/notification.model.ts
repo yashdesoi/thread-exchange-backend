@@ -1,5 +1,5 @@
 import mongoose, { Schema, Types } from 'mongoose';
-import { NotificationType } from '../common-utilities/enums';
+import { NotificationType } from '../shared';
 
 export interface NotificationInterface {
   type: NotificationType;
