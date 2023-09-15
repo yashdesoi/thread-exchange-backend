@@ -19,7 +19,7 @@ export const isAuthenticated = async (req: GetUserAuthInfoRequestInterface, res:
         if (user) {
           // * Adding custom property to req
           req.loggedInUser = user;
-          next();
+          return next();
         } else {
           throw new Error(`Unauthorized access`);
         }
@@ -27,9 +27,9 @@ export const isAuthenticated = async (req: GetUserAuthInfoRequestInterface, res:
         throw new Error(`Unauthorized access`);
       }
     } catch(error: any) {
-      next(new CustomError(error.message, 401));
+      return next(new CustomError(error.message, 401));
     }
   } else {
-    next(new CustomError('Unauthorized access', 401));
+    return next(new CustomError('Unauthorized access', 401));
   }
 };
