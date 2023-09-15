@@ -1,54 +1,108 @@
 import { NextFunction, Request, Response } from "express";
-import { GetUserAuthInfoRequestInterface } from "../shared";
-import { PostModel } from '../data-access-layer';
+import { CreateCommentDto, GetUserAuthInfoRequestInterface } from "../shared";
+import { CommentModel, PostModel } from '../data-access-layer';
 import { CustomError, CustomSuccess } from '../shared';
 import { Visibility } from '../shared';
 import { CreatePostDto } from '../shared';
-import { isInFollowingList } from '../helpers';
-import { Types } from 'mongoose';
+import mongoose, { ClientSession } from 'mongoose';
 
 export const createPost = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
     const { loggedInUser } = req;
-    const postData = new CreatePostDto(req.body);
-    const post = await PostModel.create({
-      ...postData,
+    const post = new PostModel({
+      ...(new CreatePostDto(req.body)),
       author: loggedInUser?._id
     });
-    next(new CustomSuccess(post, 201));
+    await post.save();
+    return next(new CustomSuccess(post, 201));
   } catch(error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };
 
 export const getPost = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
     const { loggedInUser } = req;
-    const postId = req.params.id;
+    const { postId } = req.params;
     const loggedInUserId = loggedInUser?._id.toString();
-    const post  = await PostModel.findOne({ _id: postId }).populate('author');
-    const authorId = post?.author._id.toString();
+    const followings = loggedInUser?.following;
 
-    if (post?.visibility === Visibility.PUBLIC) {
-      next(new CustomSuccess(post, 200));
+    const post = await PostModel.findOne({
+      $and: [
+        { _id: postId },
+        {
+          $or: [
+            { visibility: Visibility.PUBLIC },
+            { author: loggedInUserId },
+            { author: { $in: followings } }
+          ]
+        }
+      ],
+    })
+      .populate('author');
+
+    if (!post) {
+      throw new Error(`You do not follow post's author OR post doesn't exist`);
     }
 
-    if (!(authorId === loggedInUserId) &&
-        !isInFollowingList(<string>authorId, <Array<Types.ObjectId>>loggedInUser?.following)) {
-      throw new Error(`You do not follow post's author`);
-    }
-
-    next(new CustomSuccess(post, 200));
-
+    return next (new CustomSuccess(post, 200));
   } catch (error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
+  }
+};
+
+export const postComment = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
+  const session: ClientSession = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { loggedInUser } = req;
+    const { postId } = req.params;
+    const loggedInUserId = loggedInUser?._id.toString();
+    const followings = loggedInUser?.following;
+
+    const post = await PostModel.findOne({
+      $and: [
+        { _id: postId },
+        {
+          $or: [
+            { visibility: Visibility.PUBLIC },
+            { author: loggedInUserId },
+            { author: { $in: followings } }
+          ]
+        }
+      ],
+    });
+
+    if (!post) {
+      throw new Error(`You do not follow post's author OR post doesn't exist`);
+    }
+
+    const comment = new CommentModel({
+      ...(new CreateCommentDto(req.body)),
+      author: loggedInUserId,
+      post: postId
+    });
+
+    post.comments.push(comment._id);
+
+    await post.save({ session });
+    await comment.save({ session });
+    await session.commitTransaction();
+    await session.endSession();
+
+    return next (new CustomSuccess(comment, 200));
+  } catch (error: any) {
+    await session.abortTransaction();
+    await session.endSession();
+    return next(new CustomError(error.message, 400));
   }
 };
 
 export const getAvailablePosts = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
     const loggedInUserId = req.loggedInUser?._id.toString();
-    const followings = req.loggedInUser?.following;
+    const following = req.loggedInUser?.following;
     const posts = await PostModel.find({
       $or: [
         { visibility: Visibility.PUBLIC },
@@ -57,7 +111,7 @@ export const getAvailablePosts = async (req: GetUserAuthInfoRequestInterface, re
             { visibility: Visibility.FOLLOWERS },
             { 
               $or: [
-                { author: { $in: followings } },
+                { author: { $in: following } },
                 { author: loggedInUserId }
               ]
             }
@@ -66,33 +120,33 @@ export const getAvailablePosts = async (req: GetUserAuthInfoRequestInterface, re
       ]
     })
       .populate('author');
-    next(new CustomSuccess(posts, 200))
+    return next(new CustomSuccess(posts, 200))
   } catch(error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };
 
 export const getPublicPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const posts = await PostModel.find({ visibility: Visibility.PUBLIC }).populate('author');
-    next(new CustomSuccess(posts, 200))
+    return next(new CustomSuccess(posts, 200))
   } catch(error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };
 
 export const getFollowingsPosts = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
-    const followings = req.loggedInUser?.following;
+    const following = req.loggedInUser?.following;
     const posts = await PostModel.find({
       $and: [
         { visibility: Visibility.FOLLOWERS },
-        { author: { $in: followings } }
+        { author: { $in: following } }
       ]
     })
       .populate('author');
-    next(new CustomSuccess(posts, 200))
+    return next(new CustomSuccess(posts, 200))
   } catch(error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };

@@ -26,7 +26,7 @@ app.use('/api/v1/auth', authRoute);
 app.use('/api/v1/posts', postsRoute);
 app.use('/api/v1/users', usersRoute);
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
-  next(new CustomError(`404 - Not Found`, 404))
+  return next(new CustomError(`404 - Not Found`, 404))
 });
 
 app.use(outcomeHandler);

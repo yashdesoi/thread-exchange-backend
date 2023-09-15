@@ -4,7 +4,8 @@ import {
   getAvailablePosts,
   getPublicPosts,
   getFollowingsPosts,
-  getPost
+  getPost,
+  postComment
 } from '../controllers';
 import { isAuthenticated } from '../shared';
 
@@ -18,6 +19,8 @@ router.get('/public', getPublicPosts);
 
 router.get('/followings', isAuthenticated, getFollowingsPosts);
 
-router.get('/:id', isAuthenticated, getPost);
+router.get('/:postId', isAuthenticated, getPost);
+
+router.post('/:postId/comment', isAuthenticated, postComment);
 
 export const postsRoute = router;

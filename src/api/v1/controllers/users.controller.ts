@@ -7,7 +7,7 @@ import { Types } from 'mongoose';
 
 export const followUser = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
-    const userId = req.params.id;
+    const { userId } = req.params;
     const { loggedInUser } = req;
     const loggedInUserId = loggedInUser?._id.toString();
 
@@ -34,15 +34,15 @@ export const followUser = async (req: GetUserAuthInfoRequestInterface, res: Resp
       { _id: loggedInUserId },
       { $push: { following: userId } },
     );
-    next(new CustomSuccess(`Started following ${user?.name}`, 200));
+    return next(new CustomSuccess(`Started following ${user?.name}`, 200));
   } catch (error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };
 
 export const unfollowUser = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
-    const userId = req.params.id;
+    const { userId } = req.params;
     const { loggedInUser } = req;
     const loggedInUserId = loggedInUser?._id.toString();
 
@@ -67,8 +67,8 @@ export const unfollowUser = async (req: GetUserAuthInfoRequestInterface, res: Re
       { _id: loggedInUserId },
       { $pull: { following: userId } },
     );
-    next(new CustomSuccess(`Unfollowed ${user?.name}`, 200));
+    return next(new CustomSuccess(`Unfollowed ${user?.name}`, 200));
   } catch (error: any) {
-    next(new CustomError(error.message, 400));
+    return next(new CustomError(error.message, 400));
   }
 };

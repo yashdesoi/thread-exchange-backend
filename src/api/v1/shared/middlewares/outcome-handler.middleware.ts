@@ -20,5 +20,5 @@ export const outcomeHandler = (result: CustomSuccess | CustomError, req: Request
         data: null
       });
   }
-  next();
+  return next();
 };
