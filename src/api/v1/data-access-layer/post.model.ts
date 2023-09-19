@@ -5,7 +5,7 @@ export interface PostInterface {
   author: Types.ObjectId,
   comments: Array<Types.ObjectId>
   content: string,
-  numberOfVotes: number,
+  votes: Array<Types.ObjectId>,
   title: string,
   visibility: Visibility,
   whenCreated: Date,
@@ -34,10 +34,12 @@ export const postSchema = new Schema<PostInterface>({
     enum: [Visibility.PUBLIC, Visibility.FOLLOWERS],
     required: true
   },
-  numberOfVotes: {
-    type: Number,
-    default: 0
-  },
+  votes: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Vote'
+    }
+  ],
   comments: [
     {
       type: Schema.Types.ObjectId,
