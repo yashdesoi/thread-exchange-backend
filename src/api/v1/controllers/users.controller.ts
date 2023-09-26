@@ -1,11 +1,14 @@
 import { NextFunction, Response } from 'express';
-import { GetUserAuthInfoRequestInterface } from '../shared';
+import { GetUserAuthInfoRequestInterface, NotificationType } from '../shared';
 import { UserModel } from '../data-access-layer';
 import { CustomError, CustomSuccess } from '../shared';
-import { isInFollowingList } from '../helpers';
-import { Types } from 'mongoose';
+import { handleNotification, isInFollowingList } from '../helpers';
+import mongoose, { ClientSession, Types } from 'mongoose';
 
 export const followUser = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
+  const session: ClientSession = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { userId } = req.params;
     const { loggedInUser } = req;
@@ -19,11 +22,13 @@ export const followUser = async (req: GetUserAuthInfoRequestInterface, res: Resp
       throw new Error(`Already following`);
     }
 
-
     const user = await UserModel.findOneAndUpdate(
       { _id: userId },
       { $push: { followers: loggedInUserId } },
-      { new: true }
+      {
+        new: true,
+        session
+      }
     );
 
     if (!user) {
@@ -33,9 +38,23 @@ export const followUser = async (req: GetUserAuthInfoRequestInterface, res: Resp
     await UserModel.findOneAndUpdate(
       { _id: loggedInUserId },
       { $push: { following: userId } },
+      { session }
     );
+
+    await handleNotification(
+      NotificationType.FOLLOWER_ADDED,
+      <string>loggedInUserId,
+      userId,
+      session
+    );
+
+    await session.commitTransaction();
+    await session.endSession();
     return next(new CustomSuccess(`Started following ${user?.name}`, 200));
+
   } catch (error: any) {
+    await session.abortTransaction();
+    await session.endSession();
     return next(new CustomError(error.message, 400));
   }
 };

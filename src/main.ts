@@ -3,9 +3,9 @@ import dotenv from 'dotenv';
 import { connectToDatabase } from './config';
 import colors from 'colors'
 import { Server } from 'http';
-import { authRoute, postsRoute, usersRoute } from './api/v1/routes';
+import { authRoute, notificationsRoute, postsRoute, usersRoute } from './api/v1/routes';
 import morgan from 'morgan';
-import { isAuthenticated, outcomeHandler } from './api/v1/shared';
+import { outcomeHandler } from './api/v1/shared';
 import { CustomError } from './api/v1/shared';
 
 dotenv.config();
@@ -25,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/auth', authRoute);
 app.use('/api/v1/posts', postsRoute);
 app.use('/api/v1/users', usersRoute);
+app.use('/api/v1/notifications', notificationsRoute);
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
   return next(new CustomError(`404 - Not Found`, 404))
 });

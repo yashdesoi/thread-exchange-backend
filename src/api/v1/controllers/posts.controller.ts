@@ -1,11 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import { CreateCommentDto, GetUserAuthInfoRequestInterface, VoteDirection } from "../shared";
+import { CreateCommentDto, GetUserAuthInfoRequestInterface, NotificationType, VoteDirection } from "../shared";
 import { CommentModel, PostModel } from '../data-access-layer';
 import { CustomError, CustomSuccess } from '../shared';
 import { Visibility } from '../shared';
 import { CreatePostDto } from '../shared';
 import mongoose, { ClientSession } from 'mongoose';
 import { VoteInterface, VoteModel } from '../data-access-layer/vote.model';
+import { handleNotification } from '../helpers';
 
 export const createPost = async (req: GetUserAuthInfoRequestInterface, res: Response, next: NextFunction) => {
   try {
@@ -39,15 +40,15 @@ export const getPost = async (req: GetUserAuthInfoRequestInterface, res: Respons
         }
       ],
     })
-      // .populate('author')
-      // .populate('comments')
+      .populate('author')
+      .populate('comments')
       .populate('votes');
 
     if (!post) {
       throw new Error(`You do not follow post's author OR post doesn't exist`);
     }
 
-    return next (new CustomSuccess(post, 200));
+    return next(new CustomSuccess(post, 200));
   } catch (error: any) {
     return next(new CustomError(error.message, 400));
   }
@@ -89,6 +90,15 @@ export const postComment = async (req: GetUserAuthInfoRequestInterface, res: Res
 
     await post.save({ session });
     await comment.save({ session });
+
+    await handleNotification(
+      NotificationType.COMMENT_ON_POST_ADDED,
+      <string>loggedInUserId,
+      post.author.toString(),
+      session,
+      postId
+    );
+
     await session.commitTransaction();
     await session.endSession();
     return next (new CustomSuccess(comment, 200));
@@ -175,8 +185,7 @@ export const upvotePost = async (req: GetUserAuthInfoRequestInterface, res: Resp
           ]
         }
       ]
-     })
-      .populate('votes');
+     });
 
     if (!post) {
       throw new Error(`You do not follow post's author OR post doesn't exist`);
@@ -201,6 +210,15 @@ export const upvotePost = async (req: GetUserAuthInfoRequestInterface, res: Resp
     }
     await vote.save({ session });
     await post.save({ session });
+
+    await handleNotification(
+      NotificationType.UPVOTE_ON_POST_ADDED,
+      <string>loggedInUserId,
+      post.author.toString(),
+      session,
+      postId
+    );
+
     await session.commitTransaction();
     await session.endSession();
     return next (new CustomSuccess(vote, 200));
@@ -232,8 +250,7 @@ export const downvotePost = async (req: GetUserAuthInfoRequestInterface, res: Re
           ]
         }
       ]
-     })
-      .populate('votes');
+     });
 
     if (!post) {
       throw new Error(`You do not follow post's author OR post doesn't exist`);
